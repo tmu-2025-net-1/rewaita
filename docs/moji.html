@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Typo Molecule Art</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  </head>
+  <body>
+    <script>
+      let writingWords = [];
+      let floatingWords = [];
+      let backgroundWords = [];
+      let inputString = '';
+      let fontSize = 24;
+
+      function setup() {
+        createCanvas(windowWidth*0.8, windowHeight*0.8);
+        textSize(fontSize);
+        noStroke();
+
+        // 初期の背景単語
+        for (let i = 0; i < 30; i++) {
+          backgroundWords.push(new Tango(randomWord(), true));
+        }
+      }
+
+      function draw() {
+        background(20);
+
+        // 背景単語描画
+        for (let word of backgroundWords) {
+          word.update();
+          word.display();
+        }
+
+        // 現在入力中の単語
+        for (let i = 0; i < writingWords.length; i++) {
+          let nowTango = writingWords[i];
+          nowTango.display();
+          nowTango.position.x += (mouseX - nowTango.position.x) * 0.01;
+          nowTango.position.y += (mouseY - nowTango.position.y) * 0.01;
+
+          // 線でつなぐ
+          if (i > 0) {
+            stroke(255, 100);
+            line(
+              writingWords[i - 1].position.x,
+              writingWords[i - 1].position.y,
+              nowTango.position.x,
+              nowTango.position.y
+            );
+            noStroke();
+          }
+        }
+
+        // 浮遊中の単語たち
+        for (let word of floatingWords) {
+          word.update();
+          word.display();
+        }
+
+        // 全てのMojiの衝突をチェック
+        let allMojis = [];
+            // 現在入力中の文字を収集
+            for (let moji of writingWords) {
+            allMojis.push(moji);
+            }
+            // 浮遊中の単語から文字を収集
+            for (let word of floatingWords) {
+                for (let moji of word.letters) {
+                    allMojis.push(moji);
+                }
+            }
+            // 背景単語から文字を収集
+            for (let word of backgroundWords) {
+                for (let moji of word.letters) {
+                    allMojis.push(moji);
+                }
+            }
+
+        // 衝突検出と反発処理
+        for (let i = 0; i < allMojis.length; i++) {
+          for (let j = i + 1; j < allMojis.length; j++) {
+            allMojis[i].checkCollision(allMojis[j]);
+          }
+        }
+      }
+
+      function keyTyped() {
+        if (key === ' ') {
+          if (writingWords.length > 0) {
+            floatingWords.push(new Tango(writingWords));
+            writingWords = [];
+          }
+        } else {
+          let char = key;
+          let nextMoji = new Moji(char, createVector(mouseX, mouseY));
+          writingWords.push(nextMoji);
+        }
+      }
+
+      // クラス: 一文字
+      class Moji {
+        constructor(char, pos) {
+          this.char = char;
+          this.position = pos.copy();
+          this.velocity = createVector(random(-1, 1), random(-1, 1));
+          this.radius = fontSize / 2; // 衝突判定用の半径
+        }
+        update() {
+          this.position.add(this.velocity);
+          
+          // 画面端での反発
+          if (this.position.x < this.radius || this.position.x > width - this.radius) {
+            this.velocity.x *= -1;
+          }
+          if (this.position.y < this.radius || this.position.y > height - this.radius) {
+            this.velocity.y *= -1;
+          }
+          
+          // 位置を画面内に制限
+          this.position.x = constrain(this.position.x, this.radius, width - this.radius);
+          this.position.y = constrain(this.position.y, this.radius, height - this.radius);
+        }
+        // 他のMojiとの衝突をチェック
+        checkCollision(other) {
+          let distance = p5.Vector.dist(this.position, other.position);
+          let minDistance = this.radius + other.radius;
+          
+          if (distance < minDistance && distance > 0) {
+            // 衝突発生時の反発処理
+            let collisionVector = p5.Vector.sub(this.position, other.position);
+            collisionVector.normalize();
+            
+            // 重なりを解消
+            let overlap = minDistance - distance;
+            let separation = p5.Vector.mult(collisionVector, overlap * 0.5);
+            
+            this.position.add(separation);
+            other.position.sub(separation);
+            
+            // 速度を反発方向に変更
+            let relativeVelocity = p5.Vector.sub(this.velocity, other.velocity);
+            let velocityAlongNormal = p5.Vector.dot(relativeVelocity, collisionVector);
+            
+            if (velocityAlongNormal > 0) return; // 既に離れている場合は処理しない
+            
+            let restitution = 0.8; // 反発係数
+            let impulse = -velocityAlongNormal * restitution;
+            let impulseVector = p5.Vector.mult(collisionVector, impulse);
+            
+            this.velocity.add(impulseVector);
+            other.velocity.sub(impulseVector);
+          }
+        }
+
+        display() {
+          fill(255);
+          text(this.char, this.position.x, this.position.y);
+        }
+      }
+
+      // クラス: 単語（複数の文字）
+      class Tango {
+        constructor(letters, isRandom = false) {
+          this.letters = [];
+
+          if (isRandom) {
+            let x = random(width);
+            let y = random(height);
+            for (let i = 0; i < letters.length; i++) {
+              let offset = createVector(i * fontSize, 0);
+              this.letters.push(new Moji(letters[i], createVector(x, y).add(offset)));
+            }
+          } else {
+            this.letters = letters;
+          }
+        }
+
+        update() {
+          for (let l of this.letters) {
+            l.update();
+          }
+        }
+
+        display() {
+          for (let i = 0; i < this.letters.length; i++) {
+            this.letters[i].display();
+            if (i > 0) {
+              stroke(100, 80);
+              line(
+                this.letters[i - 1].position.x,
+                this.letters[i - 1].position.y,
+                this.letters[i].position.x,
+                this.letters[i].position.y
+              );
+              noStroke();
+            }
+          }
+        }
+      }
+
+      // ランダムな英単語を生成（簡易）
+      function randomWord() {
+        const syllables = ['in', 'ter', 'mo', 'lo', 'ra', 'gh', 'na', 'er', 'fi', 're'];
+        let word = '';
+        let len = floor(random(2, 4));
+        for (let i = 0; i < len; i++) {
+          word += random(syllables);
+        }
+        return word;
+      }
+
+      function windowResized() {
+        resizeCanvas(windowWidth, windowHeight);
+      }
+    </script>
+  </body>
+</html>
