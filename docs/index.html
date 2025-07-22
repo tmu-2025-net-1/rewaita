@@ -10,46 +10,67 @@
       let writingWords = [];
       let floatingWords = [];
       let backgroundWords = [];
-      let inputString = '';
-      let fontSize = 24;
+      let fontSize = 12; 
+      let isTyping = false; // タイピング中かどうかのフラグ
+      let draggedMoji = null; // 現在ドラッグされているMojiオブジェクト
+      const wordList = [
+        // 分子・細胞・微生物関連
+        "Cell", "Nucleus", "Membrane", "Cytoplasm", "Mitochondria", "Ribosome",
+        "Protein", "Enzyme", "Gene", "DNA", "RNA", "Chromosome", "Organelle",
+        "Bacteria", "Virus", "Microbe", "Amoeba", "Paramecium", "Flagella",
+        "Antibody", "Antigen", "Plasmid", "Replication", "Division", "Mutation",
+        "Osmosis", "Diffusion", "Microscope", "Culture", "Petri", "Agar",
+        "Vacuole", "Lysosome", "Golgi", "Chloroplast", "Cytoskeleton",
+        "Mitosis", "Meiosis", "Lipid", "Carbohydrate", "Nucleotide", "Ion",
+        "Molecule", "Compound", "Atom", "Element", "Hydrogen", "Oxygen", "Carbon",
+        // 日常語彙
+        "Light", "Shadow", "Mirror", "Glass", "Water", "Drop", "Bubble", "Air",
+        "Noise", "Echo", "Color", "Pattern", "Spiral", "Network", "Thread",
+        "Dot", "Wave", "Pulse", "Cycle", "Motion", "Energy", "Growth", "Split",
+        "Dream", "Memory", "Idea", "Form", "Shape", "Structure", "Path",
+        "Spark", "Seed", "Origin", "Loop", "Tide", "Trace", "Blink", "Drift",
+        // 美術・抽象性
+        "Fractal", "Cluster", "Swirl", "Flow", "Core", "Field", "Layer", "Veil",
+        "Signal", "Phase", "Glow", "Vibe", "Frame", "Trace", "Scale", "Glitch",
+        "Grain", "Filter", "Tone", "Pulse", "Grid", "Hue", "Void", "Lumen"
+      ];
+
 
       function setup() {
-        createCanvas(windowWidth*0.8, windowHeight*0.8);
+        createCanvas(windowWidth, windowHeight);
         textSize(fontSize);
         noStroke();
-
-        // 初期の背景単語
-        for (let i = 0; i < 30; i++) {
+        // 初期の背景単語を生成
+        for (let i = 0; i < 50; i++) {
           backgroundWords.push(new Tango(randomWord(), true));
         }
       }
 
       function draw() {
-        background(20);
-
-        // 背景単語描画
-        for (let word of backgroundWords) {
-          word.update();
-          word.display();
-        }
+        background(220);
 
         // 現在入力中の単語
-        for (let i = 0; i < writingWords.length; i++) {
-          let nowTango = writingWords[i];
-          nowTango.display();
-          nowTango.position.x += (mouseX - nowTango.position.x) * 0.01;
-          nowTango.position.y += (mouseY - nowTango.position.y) * 0.01;
+        if (isTyping) {
+          for (let i = 0; i < writingWords.length; i++) {
+            let nowMoji = writingWords[i];
+            nowMoji.display();
 
-          // 線でつなぐ
-          if (i > 0) {
-            stroke(255, 100);
-            line(
-              writingWords[i - 1].position.x,
-              writingWords[i - 1].position.y,
-              nowTango.position.x,
-              nowTango.position.y
-            );
-            noStroke();
+            //マウス追従
+            if (nowMoji !== draggedMoji) {
+              nowMoji.position.x += (mouseX - nowMoji.position.x) * 0.01;
+              nowMoji.position.y += (mouseY - nowMoji.position.y) * 0.01;
+            }
+            // 線でつなぐ
+            if (i > 0) {
+              stroke(255, 100);
+              line(
+                writingWords[i - 1].position.x,
+                writingWords[i - 1].position.y,
+                nowMoji.position.x,
+                nowMoji.position.y
+              );
+              noStroke();
+            }
           }
         }
 
@@ -59,160 +80,418 @@
           word.display();
         }
 
+        // 背景単語の更新と描画、寿命管理
+        for (let i = backgroundWords.length - 1; i >= 0; i--) {
+          let word = backgroundWords[i];
+          word.update();
+          word.display();
+
+          // 寿命がゼロになった背景単語を削除し、新しい単語を追加
+          if (word.life <= -10) {
+            backgroundWords.splice(i, 1);
+            backgroundWords.push(new Tango(randomWord(), true));
+          }else if (word.life < 0) {
+            // 寿命が0未満の場合は透明度を下げて表示
+            word.display(0);
+          } else {
+            // 寿命が正の場合は通常の透明度で表示
+            word.display();
+          }
+        }
+
+        // ドラッグ中のMojiの位置更新
+        if (draggedMoji) {
+          draggedMoji.drag(mouseX, mouseY);
+        }
+
         // 全てのMojiの衝突をチェック
         let allMojis = [];
-            // 現在入力中の文字を収集
-            for (let moji of writingWords) {
+        // 現在入力中の文字を収集
+        for (let moji of writingWords) {
+          allMojis.push(moji);
+        }
+        // 浮遊中の単語から文字を収集
+        for (let word of floatingWords) {
+          for (let moji of word.letters) {
             allMojis.push(moji);
-            }
-            // 浮遊中の単語から文字を収集
-            for (let word of floatingWords) {
-                for (let moji of word.letters) {
-                    allMojis.push(moji);
-                }
-            }
-            // 背景単語から文字を収集
-            for (let word of backgroundWords) {
-                for (let moji of word.letters) {
-                    allMojis.push(moji);
-                }
-            }
+          }
+        }
+        // 背景単語から文字を収集
+        for (let word of backgroundWords) {
+          for (let moji of word.letters) {
+            allMojis.push(moji);
+          }
+        }
 
-        // 衝突検出と反発処理
+        // iとjの衝突検出と反発処理
         for (let i = 0; i < allMojis.length; i++) {
           for (let j = i + 1; j < allMojis.length; j++) {
             allMojis[i].checkCollision(allMojis[j]);
+
+            // 衝突したMojiが背景単語に属する場合、そのTangoの寿命を減少させる
+            if (!allMojis[i].isDragging && !allMojis[j].isDragging) {
+              if (allMojis[i].parentTango && allMojis[i].parentTango.isbgWord) {
+                allMojis[i].parentTango.reduceLife();
+              }
+              if (allMojis[j].parentTango && allMojis[j].parentTango.isbgWord) {
+                allMojis[j].parentTango.reduceLife();
+              }
+            }
           }
+        }
+        //drawLensEffect();
+      }
+
+      //マウス
+      function mousePressed() {
+        isTyping = false;
+
+        //最前面のMojiを優先する
+        let allMojis = [];
+        for (let moji of writingWords) allMojis.push(moji);
+        for (let word of floatingWords) {
+          for (let moji of word.letters) allMojis.push(moji);
+        }
+        for (let word of backgroundWords) {
+          for (let moji of word.letters) allMojis.push(moji);
+        }
+
+        for (let i = allMojis.length - 1; i >= 0; i--) {
+          let moji = allMojis[i];
+          if (moji.isMouseOver()) {
+            draggedMoji = moji;
+            draggedMoji.startDrag(mouseX, mouseY);
+            break; // 1つのMojiだけをドラッグ
+          }
+        }
+      }
+
+      function mouseReleased() {
+        if (draggedMoji) {
+          draggedMoji.stopDrag();
+          draggedMoji = null;
         }
       }
 
       function keyTyped() {
-        if (key === ' ') {
+        if (key === ' ' || keyCode === ENTER) {
+          isTyping = false;
           if (writingWords.length > 0) {
-            floatingWords.push(new Tango(writingWords));
+            floatingWords.push(new Tango(writingWords, false));
             writingWords = [];
           }
-        } else {
+        } else if (key.length === 1 && key.match(/[a-zA-Z0-9]/)) { // 英数字のみを処理
+          isTyping = true;
           let char = key;
-          let nextMoji = new Moji(char, createVector(mouseX, mouseY));
+
+          const isFirstChar = writingWords.length === 0;
+          const charSize = isFirstChar ? fontSize * 1.8 : fontSize;
+          let nextMoji = new Moji(char, createVector(mouseX, mouseY),null, charSize);
           writingWords.push(nextMoji);
         }
       }
 
-      // クラス: 一文字
       class Moji {
-        constructor(char, pos) {
+        constructor(char, pos, parentTango = null, size = fontSize) { // parentTango 引数を追加
           this.char = char;
           this.position = pos.copy();
-          this.velocity = createVector(random(-1, 1), random(-1, 1));
-          this.radius = fontSize / 2; // 衝突判定用の半径
+          this.velocity = createVector(random(-1, 1), random(-1, 1)); // 初期速度を調整
+          this.size = size;
+          this.radius = this.size / 2; // 衝突判定用の半径
+          this.isDragging = false;
+          this.dragOffset = createVector(0, 0); // マウスとMoji中心のずれ
+          this.parentTango = parentTango; // 親Tangoへの参照
+          this.opacity = 0.1;
+          this.scale = 0.1;
+          this.BornAnimating = true;
         }
+
         update() {
-          this.position.add(this.velocity);
+          this.radius = this.size / 2;
+          if(this.BornAnimating) {
+            this.opacity *= 1.01;
+            this.scale *= 1.01;
+            if (this.opacity > 1.0){
+              this.opacity = 1.0;
+              this.scale = 1.0;
+              this.BornAnimating = false; // アニメーション終了
+            }
+          } 
           
-          // 画面端での反発
-          if (this.position.x < this.radius || this.position.x > width - this.radius) {
-            this.velocity.x *= -1;
-          }
-          if (this.position.y < this.radius || this.position.y > height - this.radius) {
-            this.velocity.y *= -1;
-          }
           
-          // 位置を画面内に制限
-          this.position.x = constrain(this.position.x, this.radius, width - this.radius);
-          this.position.y = constrain(this.position.y, this.radius, height - this.radius);
+          if (!this.isDragging) {
+            let randomForce = p5.Vector.random2D().mult(0.05);
+            this.velocity.add(randomForce); // ランダムな力を加える
+            if(this.velocity.mag() > 2) {
+              this.velocity.mult(0.5); // 速度を少し減衰させる
+            }
+            this.position.add(this.velocity);
+
+            // 画面端での反発
+            if (this.position.x < this.radius || this.position.x > width - this.radius) {
+              this.velocity.x *= -1;
+            }
+            if (this.position.y < this.radius || this.position.y > height - this.radius) {
+              this.velocity.y *= -1;
+            }
+
+            // 位置を画面内に制限
+            this.position.x = constrain(this.position.x, this.radius, width - this.radius);
+            this.position.y = constrain(this.position.y, this.radius, height - this.radius);
+          }
         }
+
         // 他のMojiとの衝突をチェック
         checkCollision(other) {
           let distance = p5.Vector.dist(this.position, other.position);
           let minDistance = this.radius + other.radius;
-          
+
           if (distance < minDistance && distance > 0) {
-            // 衝突発生時の反発処理
             let collisionVector = p5.Vector.sub(this.position, other.position);
             collisionVector.normalize();
-            
+
             // 重なりを解消
             let overlap = minDistance - distance;
             let separation = p5.Vector.mult(collisionVector, overlap * 0.5);
-            
+
             this.position.add(separation);
             other.position.sub(separation);
-            
-            // 速度を反発方向に変更
-            let relativeVelocity = p5.Vector.sub(this.velocity, other.velocity);
-            let velocityAlongNormal = p5.Vector.dot(relativeVelocity, collisionVector);
-            
-            if (velocityAlongNormal > 0) return; // 既に離れている場合は処理しない
-            
-            let restitution = 0.8; // 反発係数
-            let impulse = -velocityAlongNormal * restitution;
-            let impulseVector = p5.Vector.mult(collisionVector, impulse);
-            
-            this.velocity.add(impulseVector);
-            other.velocity.sub(impulseVector);
+
+            // ドラッグ中のMojiは速度を直接変更しない
+            if (!this.isDragging && !other.isDragging) {
+              // 速度を反発方向に変更
+              let relativeVelocity = p5.Vector.sub(this.velocity, other.velocity);
+              let velocityAlongNormal = p5.Vector.dot(relativeVelocity, collisionVector);
+
+              if (velocityAlongNormal > 0) return; // 既に離れている場合は処理しない
+
+              let restitution = 0.8; // 反発係数
+              let impulse = -velocityAlongNormal * restitution;
+              let impulseVector = p5.Vector.mult(collisionVector, impulse);
+
+              this.velocity.add(impulseVector);
+              other.velocity.sub(impulseVector);
+            } else {
+              // ドラッグ中のMojiが関与する衝突では、非ドラッグMojiのみ速度を変更
+              if (this.isDragging) {
+                other.velocity.sub(p5.Vector.mult(collisionVector, 0.5)); // 相手だけ少し押し出す
+              } else if (other.isDragging) {
+                this.velocity.add(p5.Vector.mult(collisionVector, 0.5)); // 自分だけ少し押し出される
+              }
+            }
+            //拡大するやつ
+            if (this.char === other.char  && this.parentTango !== other.parentTango) {
+              if(this.size <100){
+                this.size *= 1.15;
+                other.size *= 0.7;
+              }
+              
+              // 寿命を+200
+              this.parentTango.addLife(10);
+              other.parentTango.addLife(-10);
+            }
           }
         }
 
-        display() {
-          fill(255);
+        // マウスがMojiの上にあるか判定
+        isMouseOver() {
+          let d = dist(mouseX, mouseY, this.position.x, this.position.y);
+          return d < this.radius;
+        }
+
+        // ドラッグ開始
+        startDrag(mx, my) {
+          this.isDragging = true;
+          this.dragOffset.x = this.position.x - mx;
+          this.dragOffset.y = this.position.y - my;
+          this.velocity.set(0, 0); // ドラッグ中は速度をゼロに
+        }
+
+        // ドラッグ中
+        drag(mx, my) {
+          if (this.isDragging) {
+            this.position.x = mx + this.dragOffset.x;
+            this.position.y = my + this.dragOffset.y;
+            // ドラッグ中も画面内に制限
+            this.position.x = constrain(this.position.x, this.radius, width - this.radius);
+            this.position.y = constrain(this.position.y, this.radius, height - this.radius);
+          }
+        }
+
+        // ドラッグ終了
+        stopDrag() {
+          this.isDragging = false;
+        }
+
+        display(alpha = 255) {
+          // 円を描画
+          stroke(255, alpha*0.3+10*this.opacity);
+          strokeWeight(1);
+          fill(255, alpha * 0.1 * this.opacity);
+          circle(this.position.x, this.position.y, this.radius * 2);
+
+          // 文字を描画
+          noStroke();
+          fill(150, alpha*this.opacity);
+          textAlign(CENTER, CENTER);
           text(this.char, this.position.x, this.position.y);
         }
+
+
       }
 
       // クラス: 単語（複数の文字）
       class Tango {
-        constructor(letters, isRandom = false) {
+        constructor(content, isbgWord = false) {
           this.letters = [];
+          this.isbgWord = isbgWord;
+          this.life = isbgWord ? 255 : Infinity;
 
-          if (isRandom) {
-            let x = random(width);
-            let y = random(height);
-            for (let i = 0; i < letters.length; i++) {
-              let offset = createVector(i * fontSize, 0);
-              this.letters.push(new Moji(letters[i], createVector(x, y).add(offset)));
-            }
+          
+          if (isbgWord) {
+            this.targetWord = content; // 生成するべき単語の文字列
+            this.nextLetterIndex = 0;  // 次に生成する文字のインデックス
+            
+            // 文字が出現する位置
+            this.spawnPosition = createVector(random(width * 0.8) + width * 0.1, random(height * 0.8) + height * 0.1);
+            
+            // 文字の生成間隔
+            this.spawnInterval = 8;
+            this.spawnTimer = this.spawnInterval;
+            
           } else {
-            this.letters = letters;
+            // ユーザーが入力した単語の場合：これまで通り即時生成
+            this.letters = content; // contentはMojiの配列
+            for (let moji of this.letters) {
+              moji.parentTango = this;
+            }
           }
+        }
+
+        spawnNewLetter() {
+          if (this.nextLetterIndex >= this.targetWord.length) return; // 全て生成済みなら何もしない
+
+          const char = this.targetWord[this.nextLetterIndex];
+          
+          const isFirstLetter = this.nextLetterIndex === 0;
+          const mojiSize = isFirstLetter ? fontSize * 1.8 : fontSize;
+
+          const newMoji = new Moji(char, this.spawnPosition, this, mojiSize);
+          // 生成時に少しだけ動きを与える
+          newMoji.velocity = p5.Vector.random2D().mult(0.5);
+          
+          this.letters.push(newMoji);
+          this.nextLetterIndex++;
         }
 
         update() {
+          if (this.isbgWord && this.nextLetterIndex < this.targetWord.length) {
+            this.spawnTimer++;
+            if (this.spawnTimer >= this.spawnInterval) {
+              this.spawnNewLetter();
+              this.spawnTimer = 0; // タイマーをリセット
+            }
+          }
+
+          // 既存の文字に対する更新処理（変更なし）
           for (let l of this.letters) {
             l.update();
           }
+          this.NewtonPow();
         }
 
-        display() {
-          for (let i = 0; i < this.letters.length; i++) {
-            this.letters[i].display();
-            if (i > 0) {
-              stroke(100, 80);
-              line(
-                this.letters[i - 1].position.x,
-                this.letters[i - 1].position.y,
-                this.letters[i].position.x,
-                this.letters[i].position.y
-              );
-              noStroke();
+        //寿命減少
+        reduceLife() {
+          if (this.isbgWord) {
+            this.life -= 0.0001;
+            this.life = max(-10, this.life); // 寿命が0を下回らないように
+          }
+        }
+
+        addLife(amount){
+          if (this.isbgWord) {
+            this.life += amount;
+          }
+        }
+        removeMoji(kesuMoji){
+          this.letters = this.letters.filter(moji => !kesuMoji.has(moji));
+        }
+
+        NewtonPow() {
+          for (let i = 1; i < this.letters.length; i++) {
+            let imaMoji = this.letters[i];
+            let maeMoji = this.letters[i - 1];
+
+            // ドラッグ中のMojiがある場合、そのMojiを中心に他のMojiを引き寄せる
+            if (maeMoji.isDragging) {
+              // 前のMojiがドラッグされている場合、現在のMojiが前のMojiに追従
+              imaMoji.position.x += (maeMoji.position.x - imaMoji.position.x) * 0.03;
+              imaMoji.position.y += (maeMoji.position.y - imaMoji.position.y) * 0.03;
+            } else if (imaMoji.isDragging) {
+              // 現在のMojiがドラッグされている場合、前のMojiが現在のMojiに追従
+              maeMoji.position.x += (imaMoji.position.x - maeMoji.position.x) * 0.03;
+              maeMoji.position.y += (imaMoji.position.y - maeMoji.position.y) * 0.03;
+            } else {
+              // どちらもドラッグされていない場合は、maeMojiにimaMojiが引き寄せられる
+              imaMoji.position.x += (maeMoji.position.x - imaMoji.position.x) * 0.03;
+              imaMoji.position.y += (maeMoji.position.y - imaMoji.position.y) * 0.03;
             }
+          }
+        }
+
+        display(col) {
+          let cAlpha = 255;
+          if (this.isbgWord) {
+            let lifecol;
+            if(this.life>255){
+              lifecol = 255;
+            } else {
+              lifecol = this.life;
+            }
+            cAlpha = max(0, this.life); // 寿命を透明度として使う
+          } else if (col) {
+            cAlpha = col; // 呼び出し元で指定された色 (背景単語以外の表示色)
+          }
+
+          for (let i = 0; i < this.letters.length; i++) {
+            this.letters[i].display(cAlpha);
           }
         }
       }
 
-      // ランダムな英単語を生成（簡易）
       function randomWord() {
-        const syllables = ['in', 'ter', 'mo', 'lo', 'ra', 'gh', 'na', 'er', 'fi', 're'];
-        let word = '';
-        let len = floor(random(2, 4));
-        for (let i = 0; i < len; i++) {
-          word += random(syllables);
+        // ランダムな単語を選択
+        if (wordList && wordList.length > 0) {
+          let word = random(wordList);
+          // 文字列であることを確認
+          return typeof word === 'string' ? word : String(word);
         }
-        return word;
       }
 
       function windowResized() {
-        resizeCanvas(windowWidth, windowHeight);
+        resizeCanvas(windowWidth, windowWidth);
+      }
+
+      function drawLensEffect() {
+        let centerX = width / 2;
+        let centerY = height / 2;
+        let lensRadius = width * 0.5;
+
+        // レンズの枠
+        stroke(0,100);
+        strokeWeight(15);
+        noFill();
+        circle(centerX, centerY, lensRadius * 2);
+        // リング状にグラデーションをかけるため、たくさんの円を重ねて描画する
+        noStroke();
+        fill(0, 50);
+        circle(centerX, centerY, lensRadius * 2);
+        for (let r= lensRadius; r > 0; r -= lensRadius / 50) {
+
+          let alpha = map(r, 150, lensRadius, 255, 252);
+          fill(0, 255-alpha);
+          circle(centerX, centerY, r * 2);
+        }
       }
     </script>
   </body>
