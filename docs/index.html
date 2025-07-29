@@ -6,6 +6,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
   </head>
   <body>
+    <style>
+      body {
+        padding: 0;
+        margin: 0;
+      }
+    </style>
     <script>
       let writingWords = [];
       let floatingWords = [];
@@ -13,6 +19,10 @@
       let fontSize = 12; 
       let isTyping = false; // タイピング中かどうかのフラグ
       let draggedMoji = null; // 現在ドラッグされているMojiオブジェクト
+      let showPopUp = true;
+      let popUpImage;
+      let popUpImageTint = 255;
+      let Button;
       const wordList = [
         // 分子・細胞・微生物関連
         "Cell", "Nucleus", "Membrane", "Cytoplasm", "Mitochondria", "Ribosome",
@@ -37,9 +47,24 @@
 
 
       function setup() {
-        createCanvas(windowWidth, windowHeight);
+        createCanvas(windowWidth, windowWidth * 9 / 16);
         textSize(fontSize);
         noStroke();
+        popUpImage = loadImage("MojeCuleSetumei.png");
+        Button = createButton();
+        Button.position(10, 10);
+        Button.style('background-color', 'rgba(255, 255, 255, 0.8)');
+        Button.style('border', '1px solid #ccc');
+        Button.style('border-radius', '5px');
+        Button.style('font-size', '16px');
+        Button.style('padding', '10px');
+        Button.size(100, 50);
+        
+        Button.mousePressed(() => {
+          showPopUp = !showPopUp;
+          popUpImageTint = 255;
+        });
+
         // 初期の背景単語を生成
         for (let i = 0; i < 50; i++) {
           backgroundWords.push(new Tango(randomWord(), true));
@@ -139,7 +164,18 @@
             }
           }
         }
-        //drawLensEffect();
+        if(showPopUp){
+          tint(255, popUpImageTint);
+          let popupX = (width - popUpImage.width / 2) / 2;
+          let popupY = (height - popUpImage.height / 2) / 2;
+          image(popUpImage, popupX, popupY, popUpImage.width/2, popUpImage.height/2);
+        }else if (popUpImageTint > 0) {
+          popUpImageTint -= 5; // 徐々に透明に
+          tint(255, popUpImageTint);
+          let popupX = (width - popUpImage.width / 2) / 2;
+          let popupY = (height - popUpImage.height / 2) / 2;
+          image(popUpImage, popupX, popupY, popUpImage.width/2, popUpImage.height/2);
+        }
       }
 
       //マウス
@@ -469,7 +505,7 @@
       }
 
       function windowResized() {
-        resizeCanvas(windowWidth, windowWidth);
+        resizeCanvas(windowWidth, windowWidth * 9 / 16);
       }
 
       function drawLensEffect() {
