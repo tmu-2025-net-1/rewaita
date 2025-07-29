@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Typo Molecule Art</title>
+    <title>MojeCule</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
   </head>
   <body>
@@ -16,7 +16,7 @@
       let writingWords = [];
       let floatingWords = [];
       let backgroundWords = [];
-      let fontSize = 12; 
+      let fontSize = 20; 
       let isTyping = false; // タイピング中かどうかのフラグ
       let draggedMoji = null; // 現在ドラッグされているMojiオブジェクト
       let showPopUp = true;
@@ -51,11 +51,10 @@
         textSize(fontSize);
         noStroke();
         popUpImage = loadImage("MojeCuleSetumei.png");
-        Button = createButton();
+        Button = createButton('MojeCule');
         Button.position(10, 10);
-        Button.style('background-color', 'rgba(255, 255, 255, 0.8)');
+        Button.style('background-color', 'rgba(255, 255, 255, 0.25)');
         Button.style('border', '1px solid #ccc');
-        Button.style('border-radius', '5px');
         Button.style('font-size', '16px');
         Button.style('padding', '10px');
         Button.size(100, 50);
@@ -66,12 +65,16 @@
         });
 
         // 初期の背景単語を生成
-        for (let i = 0; i < 50; i++) {
+        for (let i = 0; i < 30; i++) {
           backgroundWords.push(new Tango(randomWord(), true));
         }
       }
 
       function draw() {
+        /*if(mouseReleased && popUpImageTint == 255 && showPopUp){
+          showPopUp = false;
+          popUpImageTint = 255;
+        }*/
         background(220);
 
         // 現在入力中の単語
@@ -258,7 +261,7 @@
           if (!this.isDragging) {
             let randomForce = p5.Vector.random2D().mult(0.05);
             this.velocity.add(randomForce); // ランダムな力を加える
-            if(this.velocity.mag() > 2) {
+            if(this.velocity.mag() > 1.5) {
               this.velocity.mult(0.5); // 速度を少し減衰させる
             }
             this.position.add(this.velocity);
@@ -429,7 +432,6 @@
             }
           }
 
-          // 既存の文字に対する更新処理（変更なし）
           for (let l of this.letters) {
             l.update();
           }
@@ -472,6 +474,10 @@
               imaMoji.position.x += (maeMoji.position.x - imaMoji.position.x) * 0.03;
               imaMoji.position.y += (maeMoji.position.y - imaMoji.position.y) * 0.03;
             }
+            /*if(imaMoji.isDragging){
+              this.parentTango.position.x += (imaMoji.position.x - this.parentTango.position.x) * 0.03;
+              this.parentTango.position.y += (imaMoji.position.y - this.parentTango.position.y) * 0.03;
+            }*/
           }
         }
 
