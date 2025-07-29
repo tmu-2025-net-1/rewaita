@@ -463,16 +463,16 @@
             // ドラッグ中のMojiがある場合、そのMojiを中心に他のMojiを引き寄せる
             if (maeMoji.isDragging) {
               // 前のMojiがドラッグされている場合、現在のMojiが前のMojiに追従
-              imaMoji.position.x += (maeMoji.position.x - imaMoji.position.x) * 0.05;
-              imaMoji.position.y += (maeMoji.position.y - imaMoji.position.y) * 0.05;
+              imaMoji.position.x += (maeMoji.position.x - imaMoji.position.x) * 0.04;
+              imaMoji.position.y += (maeMoji.position.y - imaMoji.position.y) * 0.04;
             } else if (imaMoji.isDragging) {
               // 現在のMojiがドラッグされている場合、前のMojiが現在のMojiに追従
-              maeMoji.position.x += (imaMoji.position.x - maeMoji.position.x) * 0.05;
-              maeMoji.position.y += (imaMoji.position.y - maeMoji.position.y) * 0.05;
+              maeMoji.position.x += (imaMoji.position.x - maeMoji.position.x) * 0.04;
+              maeMoji.position.y += (imaMoji.position.y - maeMoji.position.y) * 0.04;
             } else {
               // どちらもドラッグされていない場合は、maeMojiにimaMojiが引き寄せられる
-              imaMoji.position.x += (maeMoji.position.x - imaMoji.position.x) * 0.05;
-              imaMoji.position.y += (maeMoji.position.y - imaMoji.position.y) * 0.05;
+              imaMoji.position.x += (maeMoji.position.x - imaMoji.position.x) * 0.04;
+              imaMoji.position.y += (maeMoji.position.y - imaMoji.position.y) * 0.04;
             }
             /*if(imaMoji.isDragging){
               this.parentTango.position.x += (imaMoji.position.x - this.parentTango.position.x) * 0.03;
