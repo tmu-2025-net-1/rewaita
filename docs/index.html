@@ -23,6 +23,14 @@
       let popUpImage;
       let popUpImageTint = 255;
       let Button;
+
+      let speedSlider, elasticitySlider, lifeSlider, countSlider;
+      let mojiSpeed = 1.5;
+      let mojiElasticity = 0.8;
+      let bgWordLifespan = 255;
+      let bgWordCount = 30;
+
+
       const wordList = [
         // 分子・細胞・微生物関連
         "Cell", "Nucleus", "Membrane", "Cytoplasm", "Mitochondria", "Ribosome",
@@ -47,7 +55,7 @@
 
 
       function setup() {
-        createCanvas(windowWidth, windowWidth * 9 / 16);
+        createCanvas(windowWidth, windowHeight*0.9);
         textSize(fontSize);
         noStroke();
         popUpImage = loadImage("MojeCuleSetumei.png");
@@ -68,13 +76,44 @@
         for (let i = 0; i < 30; i++) {
           backgroundWords.push(new Tango(randomWord(), true));
         }
+
+        // スライダー
+        speedSlider = createSlider(0.1, 5, 1.5,0.1);//min, max, 初期値, ステップ
+        speedSlider.position(10, windowHeight*0.9+15);
+        
+        elasticitySlider = createSlider(0.1, 1.5, 0.8,0.1);
+        elasticitySlider.position(175, windowHeight*0.9+15);
+
+        lifeSlider = createSlider(10, 500, 255,1);
+        lifeSlider.position(340, windowHeight*0.9+15);
+
+        countSlider = createSlider(1, 80, 30,1);
+        countSlider.position(510, windowHeight*0.9+15);
+        
       }
 
       function draw() {
-        /*if(mouseReleased && popUpImageTint == 255 && showPopUp){
-          showPopUp = false;
-          popUpImageTint = 255;
-        }*/
+        let divs = selectAll('div');
+        for (let div of divs) {
+          div.remove();
+        }
+        mojiSpeed = speedSlider.value();
+        mojiElasticity = elasticitySlider.value();
+        bgWordLifespan = lifeSlider.value();
+        bgWordCount = countSlider.value();
+        createDiv('Moji Speed:'+speedSlider.value()).position(10, windowHeight*0.9-5);
+        createDiv('Elasticity:'+elasticitySlider.value()).position(175, windowHeight*0.9-5);
+        createDiv('Lifespan:'+lifeSlider.value()).position(340, windowHeight*0.9-5);
+        createDiv('Word Count:'+countSlider.value()).position(510, windowHeight*0.9-5);
+
+        // 背景単語の数を調整（増減）
+        while (backgroundWords.length < bgWordCount) {
+          backgroundWords.push(new Tango(randomWord(), true));
+        }
+        while (backgroundWords.length > bgWordCount) {
+          backgroundWords.pop();
+        }
+
         background(220);
 
         // 現在入力中の単語
@@ -203,6 +242,11 @@
             break; // 1つのMojiだけをドラッグ
           }
         }
+        if(showPopUp && popUpImageTint == 255){
+          if (mouseX <= 10 || mouseX >= 110 || mouseY <= 10 || mouseY >= 60) {
+            showPopUp = false;
+          }
+        }
       }
 
       function mouseReleased() {
@@ -243,6 +287,8 @@
           this.opacity = 0.1;
           this.scale = 0.1;
           this.BornAnimating = true;
+          this.rotation = 0;
+          this.rotationSpeed = 0;
         }
 
         update() {
@@ -260,9 +306,13 @@
           
           if (!this.isDragging) {
             let randomForce = p5.Vector.random2D().mult(0.05);
-            this.velocity.add(randomForce); // ランダムな力を加える
-            if(this.velocity.mag() > 1.5) {
-              this.velocity.mult(0.5); // 速度を少し減衰させる
+            this.velocity.add(randomForce);
+            if(this.velocity.mag() > mojiSpeed) {
+              this.velocity.mult(0.5);
+              let targetRotation = this.velocity.heading();
+              let rotationForce = random(-0.2, 0.5);
+              targetRotation += rotationForce;
+              this.rotation = lerp(this.rotation, targetRotation, 0.1);
             }
             this.position.add(this.velocity);
 
@@ -277,6 +327,8 @@
             // 位置を画面内に制限
             this.position.x = constrain(this.position.x, this.radius, width - this.radius);
             this.position.y = constrain(this.position.y, this.radius, height - this.radius);
+          }else{
+            this.rotation *= 0.95;
           }
         }
 
@@ -304,7 +356,7 @@
 
               if (velocityAlongNormal > 0) return; // 既に離れている場合は処理しない
 
-              let restitution = 0.8; // 反発係数
+              let restitution = mojiElasticity; // 反発係数
               let impulse = -velocityAlongNormal * restitution;
               let impulseVector = p5.Vector.mult(collisionVector, impulse);
 
@@ -363,6 +415,10 @@
         }
 
         display(alpha = 255) {
+          push();
+          translate(this.position.x, this.position.y);
+          rotate(this.rotation);
+          translate(-this.position.x, -this.position.y);
           // 円を描画
           stroke(255, alpha*0.3+10*this.opacity);
           strokeWeight(1);
@@ -373,7 +429,9 @@
           noStroke();
           fill(150, alpha*this.opacity);
           textAlign(CENTER, CENTER);
+          textSize(this.size);
           text(this.char, this.position.x, this.position.y);
+          pop();
         }
 
 
@@ -384,7 +442,7 @@
         constructor(content, isbgWord = false) {
           this.letters = [];
           this.isbgWord = isbgWord;
-          this.life = isbgWord ? 255 : Infinity;
+          this.life = isbgWord ? bgWordLifespan : Infinity;
 
           
           if (isbgWord) {
@@ -511,7 +569,7 @@
       }
 
       function windowResized() {
-        resizeCanvas(windowWidth, windowWidth * 9 / 16);
+        resizeCanvas(windowWidth, windowHeight * 0.9);
       }
 
       function drawLensEffect() {
